@@ -1,6 +1,6 @@
 import { createApp } from 'vue/dist/vue.esm-bundler.js'
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { RectAreaLightHelper } from 'three/addons/helpers/RectAreaLightHelper.js';
 import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
 
@@ -9,21 +9,19 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import { GroundProjectedSkybox } from 'three/addons/objects/GroundProjectedSkybox.js';
 
-let raycaster;
+// let raycaster = null;
 
 let moveForward = false;
 let moveBackward = false;
 let moveLeft = false;
 let moveRight = false;
-let canJump = false;
+
 let controls = null;
-let boundObjects = [];
+let personObject = null;
 let personHeight = 5.5;
 let prevTime = performance.now();
 const velocity = new THREE.Vector3();
 const direction = new THREE.Vector3();
-const vertex = new THREE.Vector3();
-const color = new THREE.Color();
 
 const initVtourApp = function(){
     const app = createApp(
@@ -64,10 +62,7 @@ const initVtourApp = function(){
                     }});
                 this.scene.add(gltf.scene);
             },
-            gltfLoaded(gltf){
-                this.createFloor();
-                new THREE.TextureLoader().load( './assets/model/sky7.jpg', this.bgLoadComplete );
-                this.loader.load( './assets/model/ceiling.glb', this.gltfCeilingLoaded);
+            stage3Loaded(gltf){
                 gltf.scene.position.y = 0;
                 gltf.scene.scale.set(2,2,2);
                 gltf.scene.traverse(function(child) {
@@ -91,13 +86,82 @@ const initVtourApp = function(){
 
                 });
                 this.scene.add(gltf.scene);
+            },
+            stage2Loaded(gltf){
+                gltf.scene.position.y = 0;
+                gltf.scene.scale.set(2,2,2);
+                gltf.scene.traverse(function(child) {
+                    if (child.isMesh) {
+                        if(!child.name.toLowerCase().includes("ventana_") ){
+                            child.castShadow = true;   
+                        }
+                        child.receiveShadow = true;
+                        child.material.needsUpdate = true;
+                        if (child.material.bumpMap) {
+                        child.material.bumpMap.needsUpdate = true;
+                        child.material.bumpScale = 1;
+                        }
+                        if (child.material.normalMap) {
+                            child.material.normalMap.needsUpdate = true;
+                        }
+                        if(child.material.roughnessMap){
+                            child.material.roughnessMap.needsUpdate = true;
+                        }
+                    }
+
+                });
+                this.scene.add(gltf.scene);
+                this.loader.load( './assets/model/stage3Models.glb', this.stage3Loaded);
+            },
+            gltfLoadPerson(gltf){
+                gltf.scene.position.y = 0;
+                gltf.scene.scale.set(2,2,2);
+                gltf.scene.traverse((child)=>{
+                    if (child.isMesh) {
+                            child.castShadow = true;   
+                    }
+                });
+                personObject = gltf.scene;
+                this.scene.add(gltf.scene);
+                controls.camera.add(personObject);
+                personObject.position.set(0,personHeight*-1,2);
+            },
+            gltfLoaded(gltf){
+                this.createFloor();
+                new THREE.TextureLoader().load( './assets/model/sky7.jpg', this.bgLoadComplete );
+                this.loader.load( './assets/model/ceiling.glb', this.gltfCeilingLoaded);
+                gltf.scene.position.y = 0;
+                gltf.scene.scale.set(2,2,2);
+                gltf.scene.traverse((child)=>{
+                    if (child.isMesh) {
+                        if(!child.name.toLowerCase().includes("ventana_") ){
+                            child.castShadow = true;   
+                        }
+                        child.receiveShadow = true;
+                        child.material.needsUpdate = true;
+                        if (child.material.bumpMap) {
+                        child.material.bumpMap.needsUpdate = true;
+                        child.material.bumpScale = 1;
+                        }
+                        if (child.material.normalMap) {
+                            child.material.normalMap.needsUpdate = true;
+                        }
+                        if(child.material.roughnessMap){
+                            child.material.roughnessMap.needsUpdate = true;
+                        }
+                    }
+
+                });
+                this.scene.add(gltf.scene);
                 this.addLights();
+                this.loader.load( './assets/model/stage2Models.glb', this.stage2Loaded);
+                this.loader.load( './assets/model/modelPerson.glb', this.gltfLoadPerson);
+                this.startRendering();
+
             },
             addLights(){
                 const mainLightColor = 0xfffff5;
-                // const bulbGeometry = new THREE.SphereGeometry( 0.05, 16, 8 );
 				this.bulbLight = new THREE.PointLight( mainLightColor, 1, 10, 0.9 );
-				// this.bulbLight2 = new THREE.PointLight( mainLightColor,1, 5, 0.2 );
                 const bulbGeometry = new THREE.CylinderGeometry( 1,1,1,32,1,false);
 				const bulbMat = new THREE.MeshStandardMaterial( {
 					emissive: 0xfffff5,
@@ -110,12 +174,9 @@ const initVtourApp = function(){
 
                 const bHeight = 8.8;
 				this.bulbLight.position.set( -5.908, bHeight, -4.430 );
-	
-				// this.bulbLight.castShadow = true;
-                this.bulbLight2 = this.bulbLight.clone();
+	            this.bulbLight2 = this.bulbLight.clone();
                 this.bulbLight.shadow.bias = -0.01;
                 this.bulbLight2.position.set( -5.883, bHeight, 5.373 );
-				// this.bulbLight2.castShadow = true;
                 this.bulbLight2.shadow.bias = -0.01;
 
                 this.bulbLight3 = this.bulbLight.clone();
@@ -190,7 +251,7 @@ const initVtourApp = function(){
 
                 this.rectLight3 = new THREE.RectAreaLight( 0xffffa0, 8, 0.1, 7.6 );
 				this.rectLight3.position.set( 8.7, 6.2, -13.95 );
-                this.rectLight3.lookAt( 8.7, 0, -13.850 );
+                this.rectLight3.lookAt( 8.7, 0, -13.95 );
 				this.scene.add( this.rectLight3 );
                 this.scene.add( new RectAreaLightHelper( this.rectLight3 ) );
 
@@ -202,17 +263,17 @@ const initVtourApp = function(){
             },
             createFloor(){
                 const floorMat = new THREE.MeshStandardMaterial( {
-					roughness: 0.99,
+					roughness: 0.9,
 					color: 0xffffff,
-					metalness: 0.01,
-					bumpScale: 0.1
+					metalness: 0.1,
+					bumpScale: 0.05
 				} );
                 const textureLoader = new THREE.TextureLoader();
 				textureLoader.load( './assets/images/hardwood2_diffuse.jpg', function ( map ) {
 					map.wrapS = THREE.RepeatWrapping;
 					map.wrapT = THREE.RepeatWrapping;
-					// map.anisotropy = 4;
-					map.repeat.set( 2.5,10 );
+					map.anisotropy = 4;
+					map.repeat.set( 3.5,16 );
 					map.colorSpace = THREE.SRGBColorSpace;
 					floorMat.map = map;
 					floorMat.needsUpdate = true;
@@ -221,18 +282,18 @@ const initVtourApp = function(){
 				textureLoader.load( './assets/images/hardwood2_bump.jpg', function ( map ) {
 					map.wrapS = THREE.RepeatWrapping;
 					map.wrapT = THREE.RepeatWrapping;
-					// map.anisotropy = 4;
-					map.repeat.set( 2.5,10 );
+					map.anisotropy = 4;
+					map.repeat.set( 3.5,16 );
 					floorMat.bumpMap = map;
-                    floorMat.bumpScale = 0.1;
+                    floorMat.bumpScale = 0.05;
 					floorMat.needsUpdate = true;
 
 				} );
 				textureLoader.load( './assets/images/hardwood2_roughness.jpg', function ( map ) {
 					map.wrapS = THREE.RepeatWrapping;
 					map.wrapT = THREE.RepeatWrapping;
-					// map.anisotropy = 10;
-					map.repeat.set( 2.5,10 );
+					map.anisotropy = 10;
+					map.repeat.set( 3.5,16 );
 					floorMat.roughnessMap = map;
 					floorMat.needsUpdate = true;
 
@@ -259,8 +320,8 @@ const initVtourApp = function(){
                 this.renderer.toneMappingExposure=1;
                 
                 this.dom.append(this.renderer.domElement);
-                this.camera = new THREE.PerspectiveCamera(50, this.canvasWidth/this.canvasHeight,0.1,100);
-                this.camera.position.z = 8
+                this.camera = new THREE.PerspectiveCamera(60, this.canvasWidth/this.canvasHeight,0.1,100);
+                this.camera.position.z = 6
                 this.camera.position.x = -8;
                 this.camera.position.y = personHeight;
                 this.camera.lookAt(0,4,0);
@@ -291,10 +352,9 @@ const initVtourApp = function(){
                 const dracoLoader = new DRACOLoader();
                 dracoLoader.setDecoderPath('./libs/draco/');
                 this.loader.setDRACOLoader( dracoLoader );
-                this.loader.load( './assets/model/room5.glb', this.gltfLoaded);
+                this.loader.load( './assets/model/stage1Models.glb', this.gltfLoaded);
               
                 this.movement();
-                this.startRendering();
             },
             movement(){
                 controls = new PointerLockControls( this.camera, document.body );
@@ -377,24 +437,26 @@ const initVtourApp = function(){
 				document.addEventListener( 'keydown', onKeyDown );
 				document.addEventListener( 'keyup', onKeyUp );
 
-                raycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, -1 ), 0, 1 );
+                // raycaster = new THREE.Raycaster( new THREE.Vector3(), new THREE.Vector3( 0, 0, -1 ), 0, 1 );
 
             },
             
             startRendering(){
+                console.log(controls);
+                console.log(controls.camera);
                 this.renderer.setAnimationLoop(this.animate);
             },
             movecontrol(){
                 const time = performance.now();
 
 				if ( controls.isLocked === true ) {
-
 					const delta = ( time - prevTime ) / 1000;
+                    // console.log(controls.camera.rotation);
 
 					velocity.x -= velocity.x * 50 * delta;
 					velocity.z -= velocity.z * 50 * delta;
 
-					velocity.y -= 9.8 * 200.0 * delta; // 100.0 = mass
+					// velocity.y -= 9.8 * 200.0 * delta; // 100.0 = mass
 
 					direction.z = Number( moveForward ) - Number( moveBackward );
 					direction.x = Number( moveRight ) - Number( moveLeft );
@@ -408,11 +470,11 @@ const initVtourApp = function(){
                     
 					controls.camera.position.y += ( velocity.y * 0.05* delta );
 
-					if ( controls.camera.position.y < personHeight ) {
-						velocity.y = 0;
-						controls.camera.position.y = personHeight;
-						canJump = true;
-					}
+					// if ( controls.camera.position.y < personHeight ) {
+					// 	velocity.y = 0;
+					// 	controls.camera.position.y = personHeight;
+					// 	canJump = true;
+					// }
                     if ( controls.camera.position.x < -8 || controls.camera.position.x > 8) {
                         velocity.x=0;
                         controls.camera.position.x = 8 * (controls.camera.position.x/Math.abs(controls.camera.position.x));
@@ -424,6 +486,8 @@ const initVtourApp = function(){
                         velocity.z=0;
                         controls.camera.position.z = 7 
                     }
+                    // personObject.position.x =controls.camera.position.x + (direction.x*1);
+                    // personObject.position.z =controls.camera.position.z + (direction.z*1);
 				}
 
 				prevTime = time;
