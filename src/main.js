@@ -1,6 +1,6 @@
 import {initHomeApp} from './components/controllers/homeappcontroller';
 import { initViewerApp, goingVR } from './components/controllers/propertyviewer';
-
+import {initVtourApp} from './components/controllers/vtourcontroller';
 
 async function initHome(){
     const homeApp = initHomeApp();
@@ -11,6 +11,10 @@ async function initViewer(){
     const propID = url.searchParams.get("propertyid");
     const viewerApp = initViewerApp(propID);
     viewerApp.mount('#propertyViewerContainer');
+}
+async function initVirtualTourApp(){
+    const vtourApp = initVtourApp();
+    vtourApp.mount('#virtualTourApp');
 }
 function displayLandscapeWarning(){
     const container = document.createElement("div");
@@ -56,12 +60,20 @@ function main(){
         }
         catch(err) {
         console.log(err);
+        }
+        try {
+            initVirtualTourApp();
+        }
+        catch(err) {
+        console.log(err);
         } 
     }else{
         if(currentScript.getAttribute('page') === 'mainapp'){
             initHome();
         }else if(currentScript.getAttribute('page') === 'propertyviewerapp'){
-            initWeddingRingApp();
+            initViewer();
+        }else if(currentScript.getAttribute('page') === 'virtualtourapp'){
+            initVirtualTourApp();
         }
     }
 }

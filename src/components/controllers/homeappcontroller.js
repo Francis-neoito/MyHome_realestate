@@ -478,7 +478,11 @@ const initHomeApp = function () {
                 <nav id="navright" class="nav">
                     <ul class="slider-ul">
                         <li class="slider-li">
-                        <a class="sliderA is-active" href="/MyHome_realestate/index.html"><span class="navSpan">Home</span></a>
+                            <a class="sliderA is-active" href="/MyHome_realestate/vtour.html"><span 
+                            style="color:#d5003b" class="navSpan">Virtual Tour</span></a>
+                        </li>
+                        <li class="slider-li">
+                            <a class="sliderA is-active" href="/MyHome_realestate/index.html"><span class="navSpan">Home</span></a>
                         </li>
                         <li class="slider-li">
                                 <a class="sliderA" href="#"><span class="navSpan">About</span></a>
