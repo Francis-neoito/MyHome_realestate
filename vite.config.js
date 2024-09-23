@@ -11,6 +11,7 @@ export default defineConfig({
       input: {
         main: './index.html',
         viewer: './propertyviewer.html',
+        vtour: './vtour.html',
       }
     }
   }
